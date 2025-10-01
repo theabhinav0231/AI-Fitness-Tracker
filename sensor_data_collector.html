@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAR Data Collector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            padding: 20px;
+            color: #ffffff;
+        }
+
+        .container {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .permission-prompt {
+            background: #1e3a5f;
+            border: 2px solid #2196f3;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .permission-prompt h2 {
+            color: #90caf9;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .permission-prompt p {
+            color: #bbdefb;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .permission-btn {
+            background: #2196f3;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .permission-btn:hover {
+            background: #1976d2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cccccc;
+            font-weight: 600;
+        }
+
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #2a2a2a;
+            color: #ffffff;
+            transition: border 0.3s;
+        }
+
+        select:focus, input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .countdown {
+            text-align: center;
+            font-size: 72px;
+            font-weight: bold;
+            color: #667eea;
+            height: 100px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .countdown.active {
+            display: block;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status.active {
+            display: block;
+        }
+
+        .status.recording {
+            background: #1b5e20;
+            color: #a5d6a7;
+            border: 2px solid #4caf50;
+        }
+
+        .status.ready {
+            background: #0d47a1;
+            color: #90caf9;
+            border: 2px solid #2196f3;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #2a2a2a;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            display: none;
+            border: 2px solid #333;
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #da190b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #388e3c;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-secondary {
+            background: #9e9e9e;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #757575;
+        }
+
+        .info-box {
+            background: #3e2723;
+            border: 2px solid #ff6f00;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #ffcc80;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .stat-item {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #333;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .log-container {
+            margin-top: 30px;
+            background: #0a0a0a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-header {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 18px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 5px;
+            border-bottom: 1px solid #222;
+            color: #aaa;
+        }
+
+        .log-entry.info {
+            color: #90caf9;
+        }
+
+        .log-entry.success {
+            color: #a5d6a7;
+        }
+
+        .log-entry.warning {
+            color: #ffcc80;
+        }
+
+        .log-entry.sensor-data {
+            color: #ce93d8;
+            background: #1a1a1a;
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #ba68c8;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏃 Activity Data Collector</h1>
+
+        <!-- iOS Permission Prompt -->
+        <div class="permission-prompt" id="permissionPrompt" style="display: none;">
+            <h2>📱 Sensor Permission Required</h2>
+            <p>This app needs access to your device's motion sensors (accelerometer and gyroscope) to collect activity data.</p>
+            <p><strong>iOS Users:</strong> You'll see a permission dialog when you tap the button below.</p>
+            <button class="permission-btn" onclick="requestSensorPermission()">
+                Grant Sensor Access
+            </button>
+        </div>
+
+        <!-- Main Form -->
+        <div id="mainForm" style="display: none;">
+            <div class="info-box">
+                <strong>Instructions:</strong> Select activity, device name, and target samples. 
+                Recording at <strong>50Hz</strong> (50 samples/second).
+            </div>
+
+            <div class="form-group">
+                <label for="activity">Select Activity:</label>
+                <select id="activity">
+                    <option value="">-- Choose Activity --</option>
+                    <option value="slow_walking">Slow Walking</option>
+                    <option value="normal_walking">Normal Pace Walking</option>
+                    <option value="fast_walking">Fast Pace Walking</option>
+                    <option value="running">Running</option>
+                    <option value="climbing_stairs">Climbing Stairs</option>
+                    <option value="descending_stairs">Descending Stairs</option>
+                    <option value="sitting_vehicle">Sitting in Vehicle</option>
+                    <option value="standing_still">Standing Still</option>
+                    <option value="sitting_stationary">Sitting Stationary</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="deviceName">Device Name:</label>
+                <input type="text" id="deviceName" placeholder="e.g., pixel7_user1">
+            </div>
+
+            <div class="form-group">
+                <label for="targetSamples">Target Samples:</label>
+                <input type="number" id="targetSamples" value="30000" min="100" step="100" placeholder="e.g., 30000">
+                <small style="color: #999; margin-top: 5px; display: block;">
+                    Recommendation: 30,000 samples = 10 mins | 15,000 = 5 mins | 3,000 = 1 min
+                </small>
+            </div>
+
+            <div class="countdown" id="countdown">3</div>
+
+            <div class="status" id="status">Ready to record</div>
+
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-label">Samples</div>
+                    <div class="stat-value" id="sampleCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Duration</div>
+                    <div class="stat-value" id="duration">0:00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Rate (Hz)</div>
+                    <div class="stat-value" id="actualRate">0</div>
+                </div>
+            </div>
+
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" id="startBtn" onclick="startRecording()">
+                    Start Recording
+                </button>
+            </div>
+
+            <div class="button-group" id="recordingControls" style="display: none;">
+                <button class="btn-danger" id="stopBtn" onclick="stopRecording()">
+                    Stop
+                </button>
+                <button class="btn-success" id="saveBtn" onclick="saveData()" disabled>
+                    Save
+                </button>
+                <button class="btn-secondary" id="cancelBtn" onclick="cancelRecording()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <div class="log-container" id="logContainer">
+            <div class="log-header">📊 Data Collection Log</div>
+            <div id="logContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const TARGET_SAMPLING_RATE = 50;
+        let targetSamples = 30000;
+        let permissionGranted = false;
+
+        // State
+        let isRecording = false;
+        let dataBuffer = [];
+        let startTime = null;
+        let durationTimer = null;
+        let logTimer = null;
+        let lastLogTime = 0;
+        let sampleCountAtLastLog = 0;
+
+        // Logging function
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logContent = document.getElementById('logContent');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logContent.appendChild(entry);
+            logContent.scrollTop = logContent.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        // Detect device and show appropriate UI
+        function detectDevice() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+            log(`Device detected: ${isIOS ? 'iOS' : 'Non-iOS'} / ${isSafari ? 'Safari' : 'Other browser'}`, 'info');
+
+            // Check if permission API exists (iOS 13+)
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                log('iOS 13+ detected - permission request required', 'warning');
+                document.getElementById('permissionPrompt').style.display = 'block';
+                return true;
+            } else if (typeof DeviceMotionEvent !== 'undefined') {
+                log('Device supports motion sensors (no permission required)', 'success');
+                permissionGranted = true;
+                document.getElementById('mainForm').style.display = 'block';
+                return true;
+            } else {
+                log('ERROR: Device does not support motion sensors!', 'warning');
+                alert('This device does not support motion sensors. Please use a mobile device.');
+                return false;
+            }
+        }
+
+        // Request sensor permission (iOS 13+)
+        async function requestSensorPermission() {
+            log('Requesting sensor permissions...', 'info');
+
+            try {
+                // Request DeviceMotion permission
+                const motionPermission = await DeviceMotionEvent.requestPermission();
+                log(`Motion permission response: ${motionPermission}`, motionPermission === 'granted' ? 'success' : 'warning');
+
+                if (motionPermission === 'granted') {
+                    permissionGranted = true;
+                    log('✓ Sensor access granted!', 'success');
+
+                    // Hide permission prompt and show main form
+                    document.getElementById('permissionPrompt').style.display = 'none';
+                    document.getElementById('mainForm').style.display = 'block';
+
+                    // Test sensor by adding temporary listener
+                    window.addEventListener('devicemotion', testSensor, { once: true });
+                } else {
+                    log('✗ Permission denied by user', 'warning');
+                    alert('Sensor permission denied. Please reload and grant permission to use this app.');
+                }
+            } catch (error) {
+                log('ERROR requesting permission: ' + error.message, 'warning');
+                alert('Error requesting sensor permission: ' + error.message);
+            }
+        }
+
+        // Test sensor to confirm it's working
+        function testSensor(event) {
+            if (event.accelerationIncludingGravity) {
+                log(`Sensor test successful - acc: (${event.accelerationIncludingGravity.x?.toFixed(2)}, ${event.accelerationIncludingGravity.y?.toFixed(2)}, ${event.accelerationIncludingGravity.z?.toFixed(2)})`, 'success');
+            } else {
+                log('Warning: Accelerometer data not available', 'warning');
+            }
+        }
+
+        // Start recording with countdown
+        async function startRecording() {
+            const activity = document.getElementById('activity').value;
+            const deviceName = document.getElementById('deviceName').value;
+            targetSamples = parseInt(document.getElementById('targetSamples').value);
+
+            if (!activity || !deviceName) {
+                alert('Please select activity and enter device name!');
+                return;
+            }
+
+            if (!targetSamples || targetSamples < 100) {
+                alert('Please enter valid target samples (minimum 100)!');
+                return;
+            }
+
+            if (!permissionGranted) {
+                alert('Sensor permission not granted. Please reload the page.');
+                return;
+            }
+
+            log(`Starting recording for activity: ${activity}, device: ${deviceName}`, 'info');
+            log(`Target samples: ${targetSamples} (estimated ${Math.round(targetSamples/TARGET_SAMPLING_RATE)} seconds)`, 'info');
+
+            // Disable start button and form inputs
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('activity').disabled = true;
+            document.getElementById('deviceName').disabled = true;
+            document.getElementById('targetSamples').disabled = true;
+
+            // Show countdown
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.classList.add('active');
+            let count = 3;
+            countdownEl.textContent = count;
+
+            log('Starting countdown: 3...', 'info');
+
+            const countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownEl.textContent = count;
+                    log(`Countdown: ${count}...`, 'info');
+                } else {
+                    clearInterval(countdownInterval);
+                    countdownEl.classList.remove('active');
+                    log('Recording started!', 'success');
+                    beginRecording();
+                }
+            }, 1000);
+        }
+
+        // Begin actual recording
+        function beginRecording() {
+            isRecording = true;
+            dataBuffer = [];
+            startTime = Date.now();
+            lastLogTime = startTime;
+            sampleCountAtLastLog = 0;
+
+            // Update UI
+            document.getElementById('status').textContent = 'Recording... Keep phone in pocket';
+            document.getElementById('status').className = 'status active recording';
+            document.getElementById('recordingControls').style.display = 'flex';
+            document.getElementById('stats').style.display = 'grid';
+            document.getElementById('progressBar').classList.add('active');
+
+            log('Listening to device motion events...', 'info');
+
+            // Start listening to device motion
+            window.addEventListener('devicemotion', handleMotionEvent);
+
+            // Update duration display every second
+            durationTimer = setInterval(updateDuration, 1000);
+
+            // Log sensor data every 10 seconds
+            logTimer = setInterval(logSensorData, 10000);
+        }
+
+        // Handle device motion events
+        function handleMotionEvent(event) {
+            if (!isRecording) return;
+
+            const timestamp = Date.now();
+            const activity = document.getElementById('activity').value;
+
+            // Get acceleration (with gravity)
+            let acc_x = 0, acc_y = 0, acc_z = 0;
+            if (event.accelerationIncludingGravity) {
+                acc_x = event.accelerationIncludingGravity.x || 0;
+                acc_y = event.accelerationIncludingGravity.y || 0;
+                acc_z = event.accelerationIncludingGravity.z || 0;
+            }
+
+            // Get rotation rate (gyroscope)
+            let gyro_x = 0, gyro_y = 0, gyro_z = 0;
+            if (event.rotationRate) {
+                gyro_x = event.rotationRate.alpha || 0;
+                gyro_y = event.rotationRate.beta || 0;
+                gyro_z = event.rotationRate.gamma || 0;
+            }
+
+            // Store sample
+            dataBuffer.push({
+                timestamp: timestamp,
+                acc_x: acc_x.toFixed(6),
+                acc_y: acc_y.toFixed(6),
+                acc_z: acc_z.toFixed(6),
+                gyro_x: gyro_x.toFixed(6),
+                gyro_y: gyro_y.toFixed(6),
+                gyro_z: gyro_z.toFixed(6),
+                label: activity
+            });
+
+            // Update stats
+            document.getElementById('sampleCount').textContent = dataBuffer.length.toLocaleString();
+
+            // Calculate actual sampling rate
+            const elapsed = (timestamp - startTime) / 1000;
+            if (elapsed > 0) {
+                const actualRate = Math.round(dataBuffer.length / elapsed);
+                document.getElementById('actualRate').textContent = actualRate;
+            }
+
+            // Update progress
+            const progress = Math.min((dataBuffer.length / targetSamples) * 100, 100);
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressFill').textContent = progress.toFixed(1) + '%';
+
+            // Check if target reached
+            if (dataBuffer.length >= targetSamples) {
+                autoComplete();
+            }
+        }
+
+        // Log sensor data every 10 seconds
+        function logSensorData() {
+            if (!isRecording || dataBuffer.length === 0) return;
+
+            const currentTime = Date.now();
+            const elapsed = (currentTime - lastLogTime) / 1000;
+            const samplesCollected = dataBuffer.length - sampleCountAtLastLog;
+            const actualRate = Math.round(samplesCollected / elapsed);
+
+            const latestSample = dataBuffer[dataBuffer.length - 1];
+
+            log(`Sensor Check - Rate: ${actualRate} Hz | Samples: ${dataBuffer.length}/${targetSamples}`, 'sensor-data');
+            log(`Latest: acc(${latestSample.acc_x}, ${latestSample.acc_y}, ${latestSample.acc_z}) gyro(${latestSample.gyro_x}, ${latestSample.gyro_y}, ${latestSample.gyro_z})`, 'sensor-data');
+
+            lastLogTime = currentTime;
+            sampleCountAtLastLog = dataBuffer.length;
+        }
+
+        // Update duration display
+        function updateDuration() {
+            const elapsed = Date.now() - startTime;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            document.getElementById('duration').textContent = 
+                minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+        }
+
+        // Auto-complete when target reached
+        function autoComplete() {
+            log(`Target reached! Collected ${dataBuffer.length} samples`, 'success');
+            playSuccessSound();
+            stopRecording();
+            setTimeout(() => saveData(), 500);
+        }
+
+        // Play success sound
+        function playSuccessSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+
+                log('Success sound played', 'success');
+            } catch (e) {
+                log('Could not play sound: ' + e.message, 'warning');
+            }
+        }
+
+        // Stop recording
+        function stopRecording() {
+            isRecording = false;
+            if (durationTimer) clearInterval(durationTimer);
+            if (logTimer) clearInterval(logTimer);
+            window.removeEventListener('devicemotion', handleMotionEvent);
+
+            const elapsed = (Date.now() - startTime) / 1000;
+            const finalRate = Math.round(dataBuffer.length / elapsed);
+
+            log(`Recording stopped. Total: ${dataBuffer.length} samples in ${elapsed.toFixed(1)}s (${finalRate} Hz)`, 'success');
+
+            document.getElementById('status').textContent = 
+                'Recording stopped (' + dataBuffer.length.toLocaleString() + ' samples)';
+            document.getElementById('status').className = 'status active ready';
+            document.getElementById('saveBtn').disabled = false;
+        }
+
+        // Save data as CSV
+        function saveData() {
+            if (dataBuffer.length === 0) {
+                alert('No data to save!');
+                return;
+            }
+
+            const activity = document.getElementById('activity').value;
+            const deviceName = document.getElementById('deviceName').value;
+            const filename = activity + '_' + deviceName + '.csv';
+
+            log(`Saving ${dataBuffer.length} samples to ${filename}...`, 'info');
+
+            let csv = 'timestamp,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z,label\n';
+            dataBuffer.forEach(row => {
+                csv += Object.values(row).join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            log(`File saved successfully: ${filename}`, 'success');
+            resetUI();
+            alert('Data saved successfully as ' + filename);
+        }
+
+        // Cancel recording
+        function cancelRecording() {
+            if (confirm('Are you sure you want to cancel? All data will be lost.')) {
+                log('Recording cancelled by user', 'warning');
+                stopRecording();
+                resetUI();
+            }
+        }
+
+        // Reset UI
+        function resetUI() {
+            dataBuffer = [];
+            document.getElementById('status').classList.remove('active');
+            document.getElementById('recordingControls').style.display = 'none';
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stats').style.display = 'none';
+            document.getElementById('progressBar').classList.remove('active');
+            document.getElementById('sampleCount').textContent = '0';
+            document.getElementById('duration').textContent = '0:00';
+            document.getElementById('actualRate').textContent = '0';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('activity').disabled = false;
+            document.getElementById('deviceName').disabled = false;
+            document.getElementById('targetSamples').disabled = false;
+            log('UI reset. Ready for next recording.', 'info');
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            log('Activity Data Collector initialized', 'success');
+            detectDevice();
+        });
+    </script>
+</body>
+</html>
